@@ -215,6 +215,30 @@ func downloadEBook(detail *services.EbookDetail, downloadType int) error {
 	}
 
 	title += "_" + detail.BookAuthor
+  
+	// 检查电子书是否已经下载
+	var ext string
+	switch downloadType {
+	case 1:
+		ext = "html"
+	case 2:
+		ext = "pdf"
+	case 3:
+		ext = "epub"
+	default:
+		return fmt.Errorf("不支持的下载类型: %d", downloadType)
+	}
+
+	// 构建文件路径
+	path, _ := utils.Mkdir(utils.OutputDir, "Ebook")
+	fileName, _ := utils.FilePath(filepath.Join(path, utils.FileName(title, "")), ext, false)
+
+	// 检查文件是否已经存在
+	if _, exist, _ := utils.FileSize(fileName); exist {
+		fmt.Printf("电子书 %s 已下载，跳过...\n", title)
+		return nil
+	}
+
 	info, svgContent, err := EbookPage(detail.Enid)
 	if err != nil {
 		return err
@@ -250,6 +274,30 @@ func downloadEBook(detail *services.EbookDetail, downloadType int) error {
 	}
 
 	return err
+}
+
+// DownloadAllEBooks 下载所有电子书
+func DownloadAllEBooks(downloadType int) error {
+	// 获取所有电子书列表
+	list, err := CourseList(CateEbook)
+	if err != nil {
+		return err
+	}
+
+	// 逐个下载电子书
+	for _, course := range list.List {
+		fmt.Printf("正在处理电子书: %s\n", course.Title)
+		d := &EBookDownloadByID{
+			DownloadType: downloadType,
+			ID:           course.ID,
+		}
+		if err := d.Download(); err != nil {
+			fmt.Printf("下载电子书 %s 失败: %v\n", course.Title, err)
+			// 继续下载其他电子书
+		}
+	}
+
+	return nil
 }
 
 func Download(downloader DeDaoDownloader) error {

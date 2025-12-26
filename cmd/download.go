@@ -9,7 +9,7 @@ import (
 	"github.com/yann0917/dedao-dl/cmd/app"
 )
 
-var downloadType, courseMerge, courseComment, courseOrder = 1, false, false, false
+var downloadType, courseMerge, courseComment, courseOrder, downloadAll = 1, false, false, false, false
 
 var downloadCmd = &cobra.Command{
 	Use:   "dl",
@@ -76,10 +76,21 @@ var dlEbookCmd = &cobra.Command{
 	Use:   "dle",
 	Short: "下载电子书",
 	Long: `使用 dedao-dl dle 下载电子书
--t 指定下载格式, 1:html, 2:PDF文档, 3:epub, 4:markdown笔记, 默认 html`,
-	Example: "dedao-dl dle 123 -t 1",
+-t 指定下载格式, 1:html, 2:PDF文档, 3:epub, 4:markdown笔记, 默认 html
+-a 下载所有电子书`,
+	Example: "dedao-dl dle 123 -t 1\ndedao-dl dle -a -t 1",
 	PreRunE: AuthFunc,
 	RunE: func(cmd *cobra.Command, args []string) error {
+
+		// 处理下载所有电子书的情况
+		if downloadAll {
+			// 调用 app 层的函数来下载所有电子书
+			return app.DownloadAllEBooks(downloadType)
+		}
+
+		if len(args) == 0 {
+			return errors.New("必须提供电子书ID或使用-a参数下载所有电子书")
+		}
 
 		if len(args) > 1 {
 			return errors.New("参数错误")
@@ -135,4 +146,5 @@ func init() {
 
 	dlOdobCmd.PersistentFlags().IntVarP(&downloadType, "downloadType", "t", 1, "下载格式, 1:mp3, 2:PDF文档, 3:markdown文档")
 	dlEbookCmd.PersistentFlags().IntVarP(&downloadType, "downloadType", "t", 1, "下载格式, 1:html, 2:PDF文档, 3:epub, 4:markdown笔记")
+	dlEbookCmd.PersistentFlags().BoolVarP(&downloadAll, "all", "a", false, "下载所有电子书")
 }
